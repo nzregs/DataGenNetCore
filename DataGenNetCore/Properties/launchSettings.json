@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DataGenNetCore": {
+      "commandName": "Project",
+      "commandLineArgs": "sendmessages insane"
+    }
+  }
+}
