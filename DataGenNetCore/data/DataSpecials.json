@@ -1,0 +1,20 @@
+﻿[
+  {
+    "Uri": "facebook.com",
+    "Name": "Facebook",
+    "Offer": "free social networking",
+    "CostPerMB": "0"
+  },
+  {
+    "Uri": "twitter.com",
+    "Name": "Twitter",
+    "Offer": "free social networking",
+    "CostPerMB": "0"
+  },
+  {
+    "Uri": "skype.com",
+    "Name": "Skype",
+    "Offer": "free voip calling",
+    "CostPerMB": "0"
+  }
+]
