@@ -2,7 +2,7 @@
   "profiles": {
     "DataGenNetCore": {
       "commandName": "Project",
-      "commandLineArgs": "sendmessages -t telco insane"
+      "commandLineArgs": "sendmessages -t telco --verbose fast"
     }
   }
 }

@@ -24,8 +24,9 @@ namespace DataGenNetCore
         private static int TimeOfDayWait()
         {
             // simulate quiet/busy times of the day returning an additional delay time in milliseconds
-            TimeZoneInfo userZone = TimeZoneInfo.FindSystemTimeZoneById("New Zealand Standard Time");
-            int hour = TimeZoneInfo.ConvertTime(DateTime.UtcNow, userZone).Hour;
+            //TimeZoneInfo userZone = TimeZoneInfo.FindSystemTimeZoneById("New Zealand Standard Time");
+            //int hour = TimeZoneInfo.ConvertTime(DateTime.UtcNow, userZone).Hour;
+            int hour = DateTime.UtcNow.AddHours(12).Hour;
             if (hour >= 22 || hour <= 5)
             {
                 return 9;
@@ -53,7 +54,7 @@ namespace DataGenNetCore
         }
 
 
-        private static async Task sendMessages(string velocity, string messagetype)
+        private static async Task sendMessages(string velocity, string messagetype, bool verbose)
         {
             Boolean keepProcessing = true;
             Int32 delay = 1000;
@@ -66,9 +67,10 @@ namespace DataGenNetCore
                     timeStamp = DateTime.Now;
                     delay = 5 * 1000;
                     //docker run error: "Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek."
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    //while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    while (true)
                     {
-                        await sendMessage(messagetype);
+                        await sendMessage(messagetype, verbose);
                         messageCount += 1;
                         if (timeStamp.AddSeconds(15) <= DateTime.Now)
                         {
@@ -85,9 +87,10 @@ namespace DataGenNetCore
                     delay = 0;
 
                     //docker run error: "Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek."
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    //while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    while (true)
                     {
-                        await sendMessage(messagetype);
+                        await sendMessage(messagetype,verbose);
                         messageCount += 1;
                         if (timeStamp.AddSeconds(15) <= DateTime.Now)
                         {
@@ -96,19 +99,20 @@ namespace DataGenNetCore
                             timeStamp = DateTime.Now;
                             messageCount = 0;
                         }
-                        Thread.Sleep(delay + (TimeOfDayWait() * 100));
+                        Thread.Sleep(delay + (TimeOfDayWait() * 100));                        
                     }
                     break;
                 case "faster":
                     timeStamp = DateTime.Now;
                     delay = 0;
                     //docker run error: "Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek."
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
+                    //while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    while (true)
+                        {
                         int parallelCount = 10;
                         Parallel.For(0, parallelCount, index =>
                         {
-                            sendMessage(messagetype);
+                            sendMessage(messagetype, verbose);
                             Thread.Sleep(delay + TimeOfDayWait() );
                             Interlocked.Add(ref messageCount, 1);
                         });
@@ -125,12 +129,13 @@ namespace DataGenNetCore
                     timeStamp = DateTime.Now;
                     delay = 0;
                     //docker run error: "Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek."
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
+                    //while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    while (true)
+                    {                       
                         int parallelCount = 20;
                         Parallel.For(0, parallelCount, async index =>
                         {
-                            await sendMessage(messagetype);
+                            await sendMessage(messagetype, verbose);
                             Interlocked.Add(ref messageCount, 1);
                         });
                         if (timeStamp.AddSeconds(5) <= DateTime.Now)
@@ -239,7 +244,7 @@ namespace DataGenNetCore
             return messagestringjson;
         }
 
-        private static async Task sendMessage(string messagetype)
+        private static async Task sendMessage(string messagetype, bool verbose)
         {
             string messagestringjson = "";
 
@@ -256,6 +261,7 @@ namespace DataGenNetCore
             try
             {
                 await hubClient.SendAsync(data);
+                if (verbose) Console.WriteLine($"Sent: {messagestringjson}");
             }
             catch (EventHubsException e)
             {
@@ -276,7 +282,8 @@ namespace DataGenNetCore
             var result = 0;
             
             Console.WriteLine("Message Sender Data Generator: usage: dotnet DataGenNetCore.dll sendmessages -t <default|telco> <slow|fast|faster|insane>");
-            Console.WriteLine("Press ESC to stop");
+            // docker background cannot handle the ESC
+            //Console.WriteLine("Press ESC to stop");
 
             var app = new Microsoft.Extensions.CommandLineUtils.CommandLineApplication(throwOnUnexpectedArg: false);
 
@@ -292,6 +299,7 @@ namespace DataGenNetCore
 
             });
             var optionMessageType = sendmessages.Option("-t | --message-type", "-t --message-type simple|telco", CommandOptionType.SingleValue);
+            var optionVerbose = sendmessages.Option("-v | --verbose", "-v --verbose", CommandOptionType.NoValue);
 
             sendmessages.Command("help", help => {
                 help.Description = "get help!";
@@ -305,7 +313,7 @@ namespace DataGenNetCore
                 slow.HelpOption("-? | -h | --help");
                 slow.OnExecute(async() => {
                     Console.WriteLine("using slow mode (1 message every ~five seconds, plus time of day delay, using thread.sleep)");
-                    await sendMessages("slow", optionMessageType.Value());              
+                    await sendMessages("slow", optionMessageType.Value(), optionVerbose.HasValue());              
                     return 0;
                 });
             });
@@ -314,7 +322,7 @@ namespace DataGenNetCore
                 fast.HelpOption("-? | -h | --help");
                 fast.OnExecute(async() => {
                     Console.WriteLine("using fast mode (single thread, time of day delay)");
-                    await sendMessages("fast", optionMessageType.Value());
+                    await sendMessages("fast", optionMessageType.Value(), optionVerbose.HasValue());
                     return 0;
                 });
             });
@@ -323,7 +331,7 @@ namespace DataGenNetCore
                 faster.HelpOption("-? | -h | --help");
                 faster.OnExecute(async () => {
                     Console.WriteLine("using faster mode (10 threads via parallel.for, time of day delay)");
-                    await sendMessages("faster", optionMessageType.Value());
+                    await sendMessages("faster", optionMessageType.Value(), optionVerbose.HasValue());
                     return 0;
                 });
             });
@@ -332,7 +340,7 @@ namespace DataGenNetCore
                 insane.HelpOption("-? | -h | --help");
                 insane.OnExecute(async () => {
                     Console.WriteLine("using insane mode (20 threads via parallel.for, no delay)");
-                    await sendMessages("insane", optionMessageType.Value());
+                    await sendMessages("insane", optionMessageType.Value(), optionVerbose.HasValue());
                     return 0;
                 });
             });

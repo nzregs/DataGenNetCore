@@ -10,10 +10,10 @@ RUN dotnet restore
 COPY . ./
 RUN dotnet publish -c Release -o out
 
-# build runtime inage
-# use slow|fast|faster|insane as options for message sending speed
+# build runtime image
+# configure settings and keys in env file and pass with docker run
 FROM microsoft/dotnet:2.1-aspnetcore-runtime
 WORKDIR /app
 COPY --from=BUILD /app/out .
-ENTRYPOINT ["dotnet","DataGenNetCore.dll"]
-CMD ["sendmessages","insane"]
+COPY customstart.sh /
+ENTRYPOINT ["/app/customstart.sh"]

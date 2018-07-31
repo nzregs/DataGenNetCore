@@ -1,0 +1,3 @@
+# ignore any environment variable files that have application/cloud keys when building container
+# these files should be used for docker run --env-file only
+*env
