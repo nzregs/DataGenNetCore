@@ -1,0 +1,24 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: telcodatagen
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: telcodatagen
+      labels:
+        app: telcodatagen
+    spec:
+      containers:
+      - name: datagennetcore
+        image: nzregs/datagennetcore
+        env:
+        - name: EVENTHUB
+          value: "EH_PATH"
+        - name: EVENTHUBCONNECTIONSTRING
+          value: "Endpoint=sb://<EH_NAMESPACE>.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=5abcdABC61A+/abcdeAB/abcdefghijAB30A5AaAB="
+        - name: VELOCITY
+          value: "fast"
+        - name: VERBOSE
+          value: 
